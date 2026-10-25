@@ -15,6 +15,7 @@ Desktop 在原生应用中运行 Harness 工作区。本参考文档说明应用
 - [应用概览](#application-overview)
 - [终端命令](#terminal-command)
 - [关闭窗口与退出](#closing-the-window-and-quitting)
+- [完成提醒](#completion-attention)
 - [关键技术决策](#key-technical-decisions)
 - [内置命令运行时](#bundled-command-runtime)
 - [安装归属](#installation-ownership)
@@ -77,6 +78,14 @@ Windows 在整个运行期间常驻托盘图标。悬停提示为产品名，单
 以下情况跳过确认：安装更新的重启已确认过任务中断、致命错误恢复对话框中的退出或重启、开发版"重启应用与 Host"命令，以及操作系统关机、重启或注销：Windows 在确定性的会话结束消息上设置该状态；macOS 在关机通知上设置，而其他应用仍可能取消这次关机，因此主窗口下一次获得焦点或显示时会清除它。安装器接管退出时会取消尚未结束的普通退出决策；晚到的查询结果和弹框答复不会再次打开确认框或重复清理。窗口隐藏期间完成的用户主动发起的更新下载，把"安装并重启"确认推迟到窗口再次显示时；强制更新流程沿用其任务栏和 Dock 提醒。Windows 安装程序和卸载程序在应用仍在运行时提示用户先在系统托盘中退出。Desktop 默认未开启定时任务，定时任务的说明只在该功能开启后出现；提醒只在已加载的会话中触发，未加载的会话既不计入，也要等到打开后才会继续。
 
 托盘渲染器以底板中心为基准将鲸鱼放大 20%，保留背景和宽高比；应用和安装器图标保持原有比例。
+
+<a id="completion-attention"></a>
+
+## 完成提醒
+
+窗口未聚焦或已隐藏时，渲染进程通过原生提醒桥上报四类后台活动：回复完成、Agent 出错、等待确认和后台任务结束。是否显示由主进程判断，因此聚焦且可见的窗口不会出现通知。每条通知只包含本地化的原因和会话标题，绝不含回复正文；点击后会显示并聚焦窗口，并打开该会话。通知只存在于当前进程，不会重放。
+
+未读角标统计“通知确实显示过、且之后未被重新打开”的会话；打开会话、使其成为主视图或将其从目录移除都会减少计数，重启应用则清零。macOS 通过 `app.setBadgeCount` 把数字显示在 Dock 上；Windows 使用 `pnpm run render:badge-icon` 生成的 `resources/badge-windows.png`，在任务栏按钮上叠加 16 × 16 圆点。两者都依赖操作系统授予已安装应用的通知权限；Windows 窗口隐藏时没有任务栏按钮，圆点会随窗口重新显示。设置 → 通用 提供“桌面通知”和“未读角标”两个开关，默认开启，渲染进程通过 IPC 写入[本地 Desktop 设置](#local-desktop-settings)中的 `attention` 对象。浏览器既不显示开关也不显示通知。
 
 <a id="key-technical-decisions"></a>
 
@@ -301,11 +310,15 @@ Electron 主进程在启动时读取一次 `app.getPath('userData')/desktop/sett
 {
   "updates": {
     "allowTestAuthPopupWindow": false
+  },
+  "attention": {
+    "notifications": true,
+    "badge": true
   }
 }
 ```
 
-已有文件不会被覆盖；缺少 `updates` 对象或该字段时均按 `false` 处理。将字段设为 `true` 后完全退出并重启应用，即可允许测试鉴权弹窗。改回 `false` 并重启即可再次禁止。创建、读取或校验失败时使用默认值 `false`，不阻止启动。Desktop 尝试在 Electron 控制台记录包含文件路径的警告；日志不可用也不阻止启动。修正文件并重启后才会应用显式设置。未知字段会保留。安装更新保留此用户数据文件；Windows 卸载按[卸载规则](#windows-uninstall-rules)删除它。
+已有文件不会被覆盖；缺少 `updates` 对象或该字段时均按 `false` 处理，缺少 `attention` 成员时按 `true` 处理。将字段设为 `true` 后完全退出并重启应用，即可允许测试鉴权弹窗。改回 `false` 并重启即可再次禁止。创建、读取或校验失败时使用默认值 `false`，不阻止启动。Desktop 尝试在 Electron 控制台记录包含文件路径的警告；日志不可用也不阻止启动。修正文件并重启后才会应用显式设置。通用设置开关会就地写入 `attention` 并保留其他字段；无法读取的文件不会被改写。安装更新保留此用户数据文件；Windows 卸载按[卸载规则](#windows-uninstall-rules)删除它。
 
 <a id="mandatory-update-policy"></a>
 

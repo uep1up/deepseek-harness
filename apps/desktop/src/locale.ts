@@ -169,6 +169,11 @@ export const en = {
   mandatoryCopyFailed: 'Could not copy the link. Select and copy it below.',
   mandatoryAddress: 'Download link',
   mandatoryNotification: 'Return to the application to confirm installation and restart.',
+  attentionTurnComplete: 'Reply ready',
+  attentionTurnError: 'Stopped with an error',
+  attentionWaiting: 'Waiting for your confirmation',
+  attentionJobComplete: 'Background job finished',
+  attentionUnreadBadge: 'Unread activity',
 } as const
 
 /** Every Desktop locale supplies the complete English key set. */
@@ -343,6 +348,11 @@ export const zh = {
   mandatoryCopyFailed: '复制失败，请手动选择并复制下方链接。',
   mandatoryAddress: '下载链接',
   mandatoryNotification: '返回应用确认安装并重启。',
+  attentionTurnComplete: '回复已就绪',
+  attentionTurnError: '已因错误停止',
+  attentionWaiting: '等待你的确认',
+  attentionJobComplete: '后台任务已完成',
+  attentionUnreadBadge: '有未读活动',
 } as const satisfies DesktopMessages
 
 /** Japanese copy, checked against the English keys. */
@@ -515,6 +525,11 @@ export const ja = {
   mandatoryCopyFailed: 'リンクをコピーできませんでした。以下から選択してコピーしてください。',
   mandatoryAddress: 'ダウンロードリンク',
   mandatoryNotification: 'アプリに戻り、インストールと再起動を確認してください。',
+  attentionTurnComplete: '返信の準備ができました',
+  attentionTurnError: 'エラーで停止しました',
+  attentionWaiting: '確認待ちです',
+  attentionJobComplete: 'バックグラウンドジョブが完了しました',
+  attentionUnreadBadge: '未読のアクティビティ',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -687,6 +702,11 @@ export const es = {
   mandatoryCopyFailed: 'No se pudo copiar el enlace. Selecciónelo y cópielo a continuación.',
   mandatoryAddress: 'Enlace de descarga',
   mandatoryNotification: 'Regrese a la aplicación para confirmar la instalación y reiniciar.',
+  attentionTurnComplete: 'Respuesta lista',
+  attentionTurnError: 'Se detuvo con un error',
+  attentionWaiting: 'Esperando tu confirmación',
+  attentionJobComplete: 'Trabajo en segundo plano finalizado',
+  attentionUnreadBadge: 'Actividad sin leer',
 } satisfies DesktopMessages
 
 /** French dictionary, checked against the English keys. */
@@ -859,6 +879,11 @@ export const fr = {
   mandatoryCopyFailed: 'Impossible de copier le lien. Sélectionnez-le et copiez-le ci-dessous.',
   mandatoryAddress: 'Lien de téléchargement',
   mandatoryNotification: "Revenez à l'application pour confirmer l'installation et redémarrer.",
+  attentionTurnComplete: 'Réponse prête',
+  attentionTurnError: 'Arrêté sur une erreur',
+  attentionWaiting: 'En attente de votre confirmation',
+  attentionJobComplete: 'Tâche d’arrière-plan terminée',
+  attentionUnreadBadge: 'Activité non lue',
 } satisfies DesktopMessages
 
 /** German dictionary, checked against the English keys. */
@@ -1031,6 +1056,11 @@ export const de = {
   mandatoryCopyFailed: 'Der Link konnte nicht kopiert werden. Wählen Sie es aus und kopieren Sie es unten.',
   mandatoryAddress: 'Download-Link',
   mandatoryNotification: 'Kehren Sie zur Anwendung zurück, um die Installation zu bestätigen und neu zu starten.',
+  attentionTurnComplete: 'Antwort bereit',
+  attentionTurnError: 'Mit einem Fehler beendet',
+  attentionWaiting: 'Warte auf deine Bestätigung',
+  attentionJobComplete: 'Hintergrundaufgabe abgeschlossen',
+  attentionUnreadBadge: 'Ungelesene Aktivität',
 } satisfies DesktopMessages
 
 /** Russian dictionary, checked against the English keys. */
@@ -1203,6 +1233,11 @@ export const ru = {
   mandatoryCopyFailed: 'Не удалось скопировать ссылку. Выделите и скопируйте его ниже.',
   mandatoryAddress: 'Ссылка для скачивания',
   mandatoryNotification: 'Вернитесь в приложение, чтобы подтвердить установку и перезапустить.',
+  attentionTurnComplete: 'Ответ готов',
+  attentionTurnError: 'Остановлено с ошибкой',
+  attentionWaiting: 'Ожидание подтверждения',
+  attentionJobComplete: 'Фоновая задача завершена',
+  attentionUnreadBadge: 'Непрочитанная активность',
 } satisfies DesktopMessages
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -1375,6 +1410,11 @@ export const pt = {
   mandatoryCopyFailed: 'Não foi possível copiar o link. Selecione e copie abaixo.',
   mandatoryAddress: 'Link de download',
   mandatoryNotification: 'Retorne ao aplicativo para confirmar a instalação e reinicie.',
+  attentionTurnComplete: 'Resposta pronta',
+  attentionTurnError: 'Parado com um erro',
+  attentionWaiting: 'Aguardando sua confirmação',
+  attentionJobComplete: 'Tarefa em segundo plano concluída',
+  attentionUnreadBadge: 'Atividade não lida',
 } satisfies DesktopMessages
 
 const dictionaries = { en, zh, ja, es, fr, de, ru, pt }

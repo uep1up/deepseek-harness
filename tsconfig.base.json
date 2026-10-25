@@ -331,6 +331,8 @@
       "@deepseek-ai/dsh-client-ui-settings-web-search": ["./packages/client/ui-settings-web-search/src"],
       "@deepseek-ai/dsh-client-ui-jobs": ["./packages/client/ui-jobs/src"],
       "@deepseek-ai/dsh-client-ui-jobs/client": ["./packages/client/ui-jobs/src/client/index.ts"],
+      "@deepseek-ai/dsh-client-ui-desktop-attention": ["./packages/client/ui-desktop-attention/src"],
+      "@deepseek-ai/dsh-client-ui-desktop-attention/client": ["./packages/client/ui-desktop-attention/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-schedule": ["./packages/client/ui-schedule/src"],
       "@deepseek-ai/dsh-client-ui-schedule/client": ["./packages/client/ui-schedule/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-plan": ["./packages/client/ui-plan/src"],

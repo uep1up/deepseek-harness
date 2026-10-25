@@ -36,6 +36,11 @@ export const DESKTOP_IPC = {
   windowFullscreen: 'dsh-desktop:window-fullscreen',
   windowsAppearance: 'dsh-desktop:windows-appearance',
   windowsMenu: 'dsh-desktop:windows-menu',
+  attentionNotify: 'dsh-desktop:attention-notify',
+  attentionBadge: 'dsh-desktop:attention-badge',
+  attentionRead: 'dsh-desktop:attention-read',
+  attentionUpdate: 'dsh-desktop:attention-update',
+  attentionActivate: 'dsh-desktop:attention-activate',
 } as const
 
 /** Desktop release update state rendered by desktop-owned UI. */
@@ -74,6 +79,51 @@ export interface DesktopUpdatePresentation {
   readonly failure?: DesktopUpdateFailureKind
 }
 
+/** Completion attention reasons the renderer may report; the native shell owns presentation. */
+export type DesktopAttentionKind = 'turn-complete' | 'turn-error' | 'waiting' | 'job-complete'
+
+/** One completed background activity reported by the renderer. */
+export interface DesktopAttentionNotice {
+  readonly sessionId: string
+  readonly title: string
+  readonly kind: DesktopAttentionKind
+}
+
+/** Stored completion-attention preferences. */
+export interface DesktopAttentionPreference {
+  readonly notifications: boolean
+  readonly badge: boolean
+}
+
+/** Native completion reminders and badge control available to the application document. */
+export interface DesktopAttentionBridge {
+  /**
+   * Show one native reminder when the request reaches a background window.
+   * @param notice - session identity, display title, and attention reason.
+   * @returns whether a notification was actually shown.
+   */
+  notify(notice: DesktopAttentionNotice): Promise<boolean>
+  /**
+   * Apply the unread-Session count to the platform badge.
+   * @param count - non-negative unread Session count; zero clears the badge.
+   */
+  setBadge(count: number): Promise<void>
+  /** @returns the stored preferences. */
+  read(): Promise<DesktopAttentionPreference>
+  /**
+   * Persist one preference update.
+   * @param update - members to replace; omitted members keep their stored value.
+   * @returns the accepted preferences.
+   */
+  update(update: Partial<DesktopAttentionPreference>): Promise<DesktopAttentionPreference>
+  /**
+   * Subscribe to notification activation.
+   * @param listener - receives the Session identity a clicked notification points at.
+   * @returns unsubscribe function.
+   */
+  onActivate(listener: (sessionId: string) => void): () => void
+}
+
 /** Product documents cannot supply update versions, package URLs, or installation authorization. */
 export interface DshDesktopProductApi {
   readonly protocolVersion: 1
@@ -81,6 +131,7 @@ export interface DshDesktopProductApi {
   readonly fileDrag: DesktopFileDrag
   readonly keyboard: DesktopKeyboardApi
   readonly shortcuts: DesktopShortcutsApi
+  readonly attention: DesktopAttentionBridge
   /**
    * Local machine description for the feedback questionnaire.
    * @returns `name=value` fields separated by `; `, with no hostname, user name, or serial number.

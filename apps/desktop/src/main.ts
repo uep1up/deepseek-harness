@@ -54,7 +54,8 @@ import { DesktopMandatoryUpdatePolicy, resolveDesktopPolicyConfig, type DesktopP
 import { desktopClientMetadata, desktopClientVersion } from './client-metadata.ts'
 import { DesktopMandatoryUpdateWindow } from './mandatory-update-window.ts'
 import { DesktopPolicyTestAuth } from './policy-test-auth.ts'
-import { readDesktopSettings } from './settings.ts'
+import { readDesktopSettings, updateDesktopAttention } from './settings.ts'
+import { DesktopAttention, desktopAttentionNotice } from './desktop-attention.ts'
 import { DesktopUpdateDialog, type UpdateDialogOptions } from './update-dialog.ts'
 import { readDesktopRuntime } from './runtime-tree.ts'
 import { DesktopBrowserGuests } from './browser-guests.ts'
@@ -717,6 +718,52 @@ async function main(): Promise<void> {
     process.platform === 'darwin' ? 'macos' : process.platform === 'win32' ? 'windows' : 'linux', () => { refreshApplicationMenu() }, window => updateOverlays.input(window))
   app.on('will-quit', () => { shortcuts.dispose() })
 
+  const attention = new DesktopAttention({
+    locale: () => locale,
+    window: () => mainWindow,
+    overlayIconPath: development
+      ? join(app.getAppPath(), 'resources', 'badge-windows.png')
+      : join(process.resourcesPath, 'badge-windows.png'),
+    activate: (sessionId) => {
+      focusPrimaryWindow()
+      const window = mainWindow
+      if (window === undefined || window.isDestroyed()) return
+      window.webContents.send(DESKTOP_IPC.attentionActivate, sessionId)
+    },
+  })
+  app.on('will-quit', () => { attention.dispose() })
+
+  ipcMain.handle(DESKTOP_IPC.attentionNotify, (event, notice: unknown) => {
+    assertProductSender(event)
+    const accepted = desktopAttentionNotice(notice)
+    // An unusable payload never reaches a native notification; the renderer needs no failure branch.
+    return accepted === undefined ? false : attention.notify(accepted)
+  })
+  ipcMain.handle(DESKTOP_IPC.attentionBadge, (event, count: unknown) => {
+    assertProductSender(event)
+    if (typeof count !== 'number') throw new Error('dsh desktop: attention badge requires a number')
+    attention.setBadge(count)
+  })
+  ipcMain.handle(DESKTOP_IPC.attentionRead, (event) => {
+    assertProductSender(event)
+    return readDesktopSettings(app.getPath('userData')).attention
+  })
+  ipcMain.handle(DESKTOP_IPC.attentionUpdate, (event, update: unknown) => {
+    assertProductSender(event)
+    if (typeof update !== 'object' || update === null) throw new Error('dsh desktop: attention update must be an object')
+    const row = update as Record<string, unknown>
+    const notifications = row.notifications
+    const badge = row.badge
+    if (notifications !== undefined && typeof notifications !== 'boolean') {
+      throw new Error('dsh desktop: attention notifications must be a boolean')
+    }
+    if (badge !== undefined && typeof badge !== 'boolean') throw new Error('dsh desktop: attention badge must be a boolean')
+    return updateDesktopAttention(app.getPath('userData'), {
+      ...(notifications === undefined ? {} : { notifications }),
+      ...(badge === undefined ? {} : { badge }),
+    })
+  })
+
   ipcMain.handle(DESKTOP_IPC.boot, async (event) => {
     assertDesktopSender(event, ['app'])
     await startup
@@ -1102,6 +1149,10 @@ async function main(): Promise<void> {
   const createMainWindow = (): BrowserWindow => {
     const window = createWindow(appPreload, false, true)
     mainWindow = window
+    // A rebuilt window carries no taskbar overlay; restore the unread badge it had.
+    attention.reapply()
+    // Windows re-shows the taskbar button from the tray without its previous overlay.
+    window.on('show', () => { attention.reapply() })
     browserGuests.bind(window, (guest, name) => shortcuts.attachGuest(window, guest, name))
     shortcuts.attach(window)
     window.on('focus', automaticCheck)

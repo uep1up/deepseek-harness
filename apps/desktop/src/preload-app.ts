@@ -2,7 +2,7 @@
 
 import type { DesktopShortcutInput, ShortcutConfigSnapshot, ShortcutSaveResult } from '@deepseek-ai/dsh-client-shortcuts/protocol'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import { DESKTOP_IPC, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
+import { DESKTOP_IPC, SCHEME, type DesktopAttentionPreference, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
 import { PLATFORM_IPC } from './platform-ipc.ts'
 import { markDocumentPlatform, syncWindowFullscreen } from './preload-platform.ts'
 import { syncNativeTheme } from './preload-theme.ts'
@@ -56,6 +56,19 @@ function createProductApi(): DshDesktopProductApi {
         const handle = (_event: Electron.IpcRendererEvent, snapshot: ShortcutConfigSnapshot): void => { listener(snapshot) }
         ipcRenderer.on(DESKTOP_IPC.shortcutsChanged, handle)
         return () => { ipcRenderer.off(DESKTOP_IPC.shortcutsChanged, handle) }
+      },
+    },
+    attention: {
+      notify: notice => ipcRenderer.invoke(DESKTOP_IPC.attentionNotify, notice) as Promise<boolean>,
+      setBadge: count => ipcRenderer.invoke(DESKTOP_IPC.attentionBadge, count) as Promise<void>,
+      read: () => ipcRenderer.invoke(DESKTOP_IPC.attentionRead) as Promise<DesktopAttentionPreference>,
+      update: update => ipcRenderer.invoke(DESKTOP_IPC.attentionUpdate, update) as Promise<DesktopAttentionPreference>,
+      onActivate(listener) {
+        const handle = (_event: Electron.IpcRendererEvent, sessionId: unknown): void => {
+          if (typeof sessionId === 'string' && sessionId.length > 0) listener(sessionId)
+        }
+        ipcRenderer.on(DESKTOP_IPC.attentionActivate, handle)
+        return () => { ipcRenderer.off(DESKTOP_IPC.attentionActivate, handle) }
       },
     },
     updates: {

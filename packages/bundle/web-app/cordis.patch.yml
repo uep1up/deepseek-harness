@@ -394,6 +394,13 @@
     - id: ui-jobs
       name: '@deepseek-ai/dsh-client-ui-jobs'
 
+    # Desktop-only completion attention: native notifications and the unread
+    # badge over the Electron shell bridge. A browser renders neither row nor
+    # notification because no bridge exists.
+    - id: ui-desktop-attention
+      name: '@deepseek-ai/dsh-client-ui-desktop-attention'
+      disabled: !!js "ctx.get('profileContext')?.name !== 'desktop'"
+
     # Task management and Session reminder catalog over the Host Schedule
     # service mounted above.
     - id: ui-schedule

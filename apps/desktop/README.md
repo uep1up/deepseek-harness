@@ -15,6 +15,7 @@ Desktop runs the Harness workspace in a native application. This reference cover
 - [Application overview](#application-overview)
 - [Terminal command](#terminal-command)
 - [Closing the window and quitting](#closing-the-window-and-quitting)
+- [Completion attention](#completion-attention)
 - [Key technical decisions](#key-technical-decisions)
 - [Bundled command runtime](#bundled-command-runtime)
 - [Installation ownership](#installation-ownership)
@@ -77,6 +78,14 @@ The mandatory update confirmation includes the installation wait notice on Windo
 The confirmation is skipped when the installer restart already confirmed task interruption, when the fatal-recovery dialog exits or restarts, when the development Restart App and Host command runs, and during operating-system shutdown, restart, or log-off: Windows sets this on the definitive session-end message; macOS sets it on the power-off notification, and because another application can still cancel that shutdown, the next focus or show of the main window clears it. Installer-owned quit cancels any pending ordinary quit decision; late inspection results and dialog answers cannot open another confirmation or repeat cleanup. A user-initiated update download that finishes while the window is hidden defers its Install and Restart confirmation until the window is shown again; the mandatory flow keeps its taskbar and Dock attention. The Windows installer and uninstaller tell a user whose application is still running to quit it from the system tray. Desktop does not enable scheduled tasks by default, so the scheduled-task explanations appear only once that feature is on; reminders fire only in loaded sessions, and unloaded sessions are neither counted nor resumed until they are opened.
 
 The tray renderer enlarges the whale by 20% around the tile center while preserving the background and aspect ratio; application and installer icons retain their original proportions.
+
+<a id="completion-attention"></a>
+
+## Completion attention
+
+While the window is unfocused or hidden, the renderer reports four kinds of background activity over the native attention bridge: a finished reply, an Agent error, a pending confirmation, and a settled background job. The main process decides visibility, so a focused, visible window never shows a notification. Each notification names the localized reason and the Session title only — never reply text — and a click shows and focuses the window and opens that Session. Notifications live for the current process and are not replayed.
+
+The unread badge counts Sessions whose notification was actually shown and that the user has not reopened since; opening the Session, making it the main view, or removing it from the catalog drops it, and restarting the application clears the count. macOS applies the number to the Dock with `app.setBadgeCount`; Windows draws a 16 × 16 overlay dot on the taskbar button from `resources/badge-windows.png`, rendered by `pnpm run render:badge-icon`. Both need the notification permission the operating system grants the installed application; a hidden Windows window has no taskbar button, so its dot returns with the window. Settings → General offers **Desktop notifications** and **Unread badge**, both enabled by default; the renderer writes them through IPC into the `attention` object described under [local desktop settings](#local-desktop-settings). A browser shows neither row nor notification.
 
 <a id="key-technical-decisions"></a>
 
@@ -301,11 +310,15 @@ On first launch, including after an upgrade, Desktop creates this document if it
 {
   "updates": {
     "allowTestAuthPopupWindow": false
+  },
+  "attention": {
+    "notifications": true,
+    "badge": true
   }
 }
 ```
 
-Existing documents are never overwritten; an omitted `updates` object or field resolves to `false`. Set the field to `true` to permit test authentication dialogs, then fully quit and restart the application. Set it back to `false` and restart to suppress them again. Creation, read, or validation failures use the default `false` without blocking startup. Desktop attempts to warn through the Electron console with the file path; unavailable logging does not block startup. Correct the file and restart to apply an explicit setting. Unknown fields are preserved. Installation updates retain this user-data file; Windows uninstallation removes it under the [uninstall rules](#windows-uninstall-rules).
+Existing documents are never overwritten; an omitted `updates` object or field resolves to `false`, and an omitted `attention` member resolves to `true`. Set the field to `true` to permit test authentication dialogs, then fully quit and restart the application. Set it back to `false` and restart to suppress them again. Creation, read, or validation failures use the default `false` without blocking startup. Desktop attempts to warn through the Electron console with the file path; unavailable logging does not block startup. Correct the file and restart to apply an explicit setting. The General Settings toggles write `attention` in place and preserve every other field; a document that cannot be read is left untouched instead of being rewritten. Installation updates retain this user-data file; Windows uninstallation removes it under the [uninstall rules](#windows-uninstall-rules).
 
 <a id="mandatory-update-policy"></a>
 

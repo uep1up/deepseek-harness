@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, onTestFinished, vi } from 'vitest'
-import { readDesktopSettings } from '../src/settings.ts'
+import { readDesktopSettings, updateDesktopAttention } from '../src/settings.ts'
 
 vi.mock('node:fs', async importOriginal => ({ ...await importOriginal<typeof import('node:fs')>() }))
 
@@ -22,8 +22,20 @@ it('creates a discoverable default file on first launch without touching other p
   const { userData, path } = fixture()
   rmSync(join(userData, 'desktop'), { recursive: true })
   writeFileSync(join(userData, 'keybindings.json'), 'existing shortcuts\n')
-  expect(readDesktopSettings(userData)).toEqual({ updates: { allowTestAuthPopupWindow: false } })
-  expect(readFileSync(path, 'utf8')).toBe('{\n  "updates": {\n    "allowTestAuthPopupWindow": false\n  }\n}\n')
+  expect(readDesktopSettings(userData)).toEqual({
+    updates: { allowTestAuthPopupWindow: false },
+    attention: { notifications: true, badge: true },
+  })
+  expect(readFileSync(path, 'utf8')).toBe(`{
+  "updates": {
+    "allowTestAuthPopupWindow": false
+  },
+  "attention": {
+    "notifications": true,
+    "badge": true
+  }
+}
+`)
   expect(readFileSync(join(userData, 'keybindings.json'), 'utf8')).toBe('existing shortcuts\n')
 })
 
@@ -79,5 +91,49 @@ it('continues with defaults even when warning output fails', () => {
   writeFileSync(path, '{')
   vi.mocked(console.warn).mockImplementation(() => { throw new Error('output unavailable') })
   expect(readDesktopSettings(userData).updates.allowTestAuthPopupWindow).toBe(false)
+  expect(readFileSync(path, 'utf8')).toBe('{')
+})
+
+it.each(['{}', '{"updates": {}}'])('defaults attention fields without rewriting the document: %s', (raw) => {
+  const { userData, path } = fixture()
+  writeFileSync(path, raw)
+  expect(readDesktopSettings(userData).attention).toEqual({ notifications: true, badge: true })
+  expect(readFileSync(path, 'utf8')).toBe(raw)
+})
+
+it.each(['{"attention":null}', '{"attention":[]}', '{"attention":{"notifications":"false"}}',
+  '{"attention":{"badge":1}}'])('falls back to enabled attention for an invalid document: %s', (raw) => {
+  const { userData, path } = fixture()
+  writeFileSync(path, raw)
+  expect(readDesktopSettings(userData).attention).toEqual({ notifications: true, badge: true })
+  expect(readFileSync(path, 'utf8')).toBe(raw)
+})
+
+it('persists attention changes while preserving unrelated fields and earlier updates', () => {
+  const { userData, path } = fixture()
+  writeFileSync(path, JSON.stringify({ updates: { allowTestAuthPopupWindow: true }, custom: 'preserve' }))
+  expect(updateDesktopAttention(userData, { notifications: false })).toEqual({ notifications: false, badge: true })
+  const written = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
+  expect(written).toEqual({
+    updates: { allowTestAuthPopupWindow: true },
+    custom: 'preserve',
+    attention: { notifications: false, badge: true },
+  })
+  expect(updateDesktopAttention(userData, { badge: false })).toEqual({ notifications: false, badge: false })
+})
+
+it('creates the document before applying an update to a missing file', () => {
+  const { userData, path } = fixture()
+  expect(updateDesktopAttention(userData, { badge: false })).toEqual({ notifications: true, badge: false })
+  expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({
+    updates: { allowTestAuthPopupWindow: false },
+    attention: { notifications: true, badge: false },
+  })
+})
+
+it('refuses to rewrite an unreadable document', () => {
+  const { userData, path } = fixture()
+  writeFileSync(path, '{')
+  expect(() => updateDesktopAttention(userData, { notifications: false })).toThrow()
   expect(readFileSync(path, 'utf8')).toBe('{')
 })
